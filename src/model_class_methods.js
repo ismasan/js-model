@@ -95,6 +95,52 @@ Model.ClassMethods = {
       return this
     }
   },
+  
+  callPersistMethod: function(method, model, callback) {
+    var self = this;
+
+    // Automatically manage adding and removing from the model's Collection.
+    var manageCollection = function() {
+      if (method === "destroy") {
+        self.remove(model)
+      } else {
+        self.add(model)
+      }
+    };
+
+    // Wrap the existing callback in this function so we always manage the
+    // collection and trigger events from here rather than relying on the
+    // persistence adapter to do it for us. The persistence adapter is
+    // only required to execute the callback with a single argument - a
+    // boolean to indicate whether the call was a success - though any
+    // other arguments will also be forwarded to the original callback.
+    var wrappedCallback = function(success) {
+      if (success) {
+        // Merge any changes into attributes and clear changes.
+        model.merge(model.changes).reset();
+
+        // Add/remove from collection if persist was successful.
+        manageCollection();
+
+        // Trigger the event before executing the callback.
+        model.trigger(method);
+      }
+
+      // Store the return value of the callback.
+      var value;
+
+      // Run the supplied callback.
+      if (callback) value = callback.apply(model, arguments);
+
+      return value;
+    };
+
+    if (this._persistence) {
+      this._persistence[method](model, wrappedCallback);
+    } else {
+      wrappedCallback.call(model, true);
+    }
+  },
 
   pluck: function(attribute) {
     var all = this.all()
@@ -124,6 +170,17 @@ Model.ClassMethods = {
     } else {
       return false;
     }
+  },
+  
+  // Persistence CRUD
+  // Instances CRUD methods delegate here
+  destroy: function(model, callback) {
+    this.callPersistMethod("destroy", model, callback);
+  },
+  
+  save: function(model, callback) {
+    var method = model.newRecord() ? "create" : "update";
+    this.callPersistMethod(method, model, callback);
   },
 
   reverse: function() {

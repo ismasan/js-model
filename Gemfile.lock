@@ -7,6 +7,7 @@ GEM
       rack
     highlight (1.1.2)
       activesupport (>= 2.0.0)
+    json (1.5.1)
     nokogiri (1.4.4)
     rack (1.2.1)
     rdiscount (1.6.8)
@@ -22,6 +23,7 @@ DEPENDENCIES
   closure-compiler
   fewer (~> 0.2.0)
   highlight
+  json
   nokogiri
   rdiscount
   sinatra
